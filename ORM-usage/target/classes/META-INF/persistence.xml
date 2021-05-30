@@ -1,0 +1,15 @@
+<persistence>
+    <persistence-unit>
+        <properties>
+            <property name="driver">org.postgresql.Driver</property>
+            <property name="url">jdbc:postgresql://localhost/clitool</property>
+            <property name="user">postgres</property>
+            <property name="password">rafet123</property>
+        </properties>
+        <classes>
+            <class>
+                models.Person
+            </class>
+        </classes>
+    </persistence-unit>
+</persistence>

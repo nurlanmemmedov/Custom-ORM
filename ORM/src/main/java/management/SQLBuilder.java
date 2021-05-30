@@ -1,36 +1,21 @@
 package management;
-
 import java.lang.reflect.Field;
-
 import annotations.MyColumn;
 import storages.DataTypes;
 import storages.Entity;
 
 public final class SQLBuilder {
-    private final static String CREATETABLE = "CREATE TABLE ";
-    private final static String PRIMARYKEY = "PRIMARY KEY";
-    private final static String _ID = "_id";
-    private final static String ID = " (id)";
-    private final static String ALTERTABLE = "ALTER TABLE ";
-    private final static String ADDCONSTRAINT = " ADD CONSTRAINT ";
-    private final static String FOREIGNKEY = " FOREIGN KEY";
-    private final static String INTEGER = " INTEGER, ";
-    private final static String LEFTBRACKET = " (";
-    private final static String RIGHTBRACKET = ")";
-    private final static String SERIAL = " serial, ";
-    private final static String INSERTINTO = "INSERT INTO ";
-
 
     public static String buildCreateTableRequest(Entity entity) {
 
         String tableName = entity.tableName();
         String primaryKey = entity.primaryKey();
 
-        StringBuilder SQLRequest = new StringBuilder(CREATETABLE + tableName
-                + LEFTBRACKET + primaryKey + SERIAL);
+        StringBuilder SQLRequest = new StringBuilder("CREATE TABLE " + tableName
+                + " (" + primaryKey + " serial, ");
         SQLRequest.append(buildEntityFieldLine(entity));
-        SQLRequest.append(PRIMARYKEY).append(LEFTBRACKET).append(primaryKey).append(RIGHTBRACKET);
-        SQLRequest.append(RIGHTBRACKET);
+        SQLRequest.append("PRIMARY KEY ").append(" (").append(primaryKey).append(")");
+        SQLRequest.append(")");
         return SQLRequest.toString();
     }
 

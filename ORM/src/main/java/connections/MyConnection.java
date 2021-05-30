@@ -13,6 +13,10 @@ public class MyConnection implements AutoCloseable {
     }
 
     public MyConnection() {
+        Settings settings = new Settings();
+        for (String cls : settings.tableClasses){
+
+        }
         setConnection();
     }
 

@@ -1,10 +1,9 @@
 package storages;
 import annotations.*;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-
 import management.QueryBuilder;
 
 public class Entity {
@@ -15,10 +14,10 @@ public class Entity {
         if (entityClass.getAnnotation(MyEntity.class) != null) {
             this.entityClass = entityClass;
             try {
-                this.entityObject = entityClass.newInstance();
+                this.entityObject = entityClass.getDeclaredConstructor().newInstance();
                 if (!Table.isTableExist(this.getModelAnnotation().tableName().toLowerCase()))
                     Table.createTableFromEntity(this);
-            } catch (IllegalAccessException | InstantiationException e) {
+            } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                 e.printStackTrace();
             }
         } else {
@@ -31,7 +30,6 @@ public class Entity {
             entityObject = object;
             if (!Table.isTableExist(this.getModelAnnotation().tableName()))
                 Table.createTableFromEntity(this);
-        } else {
         }
     }
 

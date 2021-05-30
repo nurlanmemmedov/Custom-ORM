@@ -1,0 +1,13 @@
+management\SQLBuilder.class
+management\EntityManager.class
+annotations\MyId.class
+storages\Entity.class
+management\QueryBuilder.class
+storages\Table.class
+annotations\MyColumn.class
+connections\MyConnection.class
+utils\Settings.class
+storages\DataTypes.class
+interfaces\IEntityManager.class
+annotations\MyEntity.class
+exceptions\NoEntityAnnotation.class

@@ -2,6 +2,8 @@ package management;
 import annotations.MyColumn;
 import annotations.MyId;
 import connections.MyConnection;
+import interfaces.IEntityManager;
+import storages.Table;
 import utils.Settings;
 import storages.Entity;
 import java.lang.reflect.Field;
@@ -9,15 +11,20 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EntityManager implements AutoCloseable {
+public class EntityManager implements AutoCloseable, IEntityManager {
 
     private static EntityManager instance;
     Connection connection;
 
     public EntityManager() {
         Settings settings = new Settings();
+        // CREATE TABLES FROM XML CLASSES
         for (String className : settings.tableClasses){
-
+            try {
+                Table.createTableFromEntity(new Entity(Class.forName(className)));
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         connection = (new MyConnection()).getConnection();
     }
@@ -30,13 +37,13 @@ public class EntityManager implements AutoCloseable {
         return instance;
     }
 
-    public int createRecordInTable(Entity entity) {
+    @Override
+    public int create(Entity entity) {
         int addedRecordId = -1;
-        final String TABLE_NAME = entity.tableName().toLowerCase();
-        final String QUERY_CREATE_ON_TABLE = "INSERT INTO " + TABLE_NAME + " (" + entity.getParsedFieldsLine() + ")"
+        final String query = "INSERT INTO " + entity.tableName() + " (" + entity.getParsedFieldsLine() + ")"
                 + " VALUES (" + entity.getParsedValuesLine() + ");";
 
-        try (final PreparedStatement statement = connection.prepareStatement(QUERY_CREATE_ON_TABLE,
+        try (final PreparedStatement statement = connection.prepareStatement(query,
                 Statement.RETURN_GENERATED_KEYS)) {
             statement.executeUpdate();
             try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
@@ -53,11 +60,11 @@ public class EntityManager implements AutoCloseable {
         return addedRecordId;
     }
 
+    @Override
     public void updateById(Entity entity, int value) {
         String preparedData = SQLBuilder.buildFieldValuesLine(entity);
         try {
             PreparedStatement statement = connection.prepareStatement("UPDATE " + entity.tableName()+"  SET " + preparedData + " WHERE "+ entity.primaryKey()+ " =  ?");
-            System.out.println(statement);
             statement.setInt(1, value);
             statement.executeUpdate();
         } catch (SQLException throwables) {
@@ -66,6 +73,7 @@ public class EntityManager implements AutoCloseable {
 
     }
 
+    @Override
     public boolean deleteById(Entity entity, int value) {
         try {
             PreparedStatement statement = connection.prepareStatement("DELETE FROM " + entity.tableName()+"  WHERE "+ entity.primaryKey()+ " =  ?");
@@ -78,8 +86,8 @@ public class EntityManager implements AutoCloseable {
         return false;
     }
 
-
-    public boolean deleteAllRecordsInTable(Entity entity) {
+    @Override
+    public boolean deleteAll(Entity entity) {
         try {
             PreparedStatement statement = connection.prepareStatement("DELETE FROM " + entity.tableName());
             statement.executeUpdate();
@@ -90,19 +98,14 @@ public class EntityManager implements AutoCloseable {
         return false;
     }
 
-    public List<Entity> readAllRecordsOrderedByPK(Entity entity) {
-
-        final String TABLE_NAME = entity.tableName();
-        String PK_NAME = entity.primaryKey();
-
-        final String QUERY_READ_FROM_TABLE = "SELECT * FROM " + TABLE_NAME + " ORDER BY " + PK_NAME + ";";
-
+    @Override
+    public List<Entity> getAll(Entity entity) {
+        final String query = "SELECT * FROM " + entity.tableName() + " ORDER BY " + entity.primaryKey() + ";";
         List<Entity> entities = new ArrayList<>();
-
         try (final Statement statement = connection.createStatement();
-             final ResultSet resultSet = statement.executeQuery(QUERY_READ_FROM_TABLE)) {
+             final ResultSet resultSet = statement.executeQuery(query)) {
             while (resultSet.next()) {
-                Entity en = setFieldsValue(entity, resultSet, PK_NAME);
+                Entity en = setFieldsValue(entity, resultSet, entity.primaryKey());
                 entities.add(en);
             }
         } catch (SQLException e) {
@@ -111,24 +114,24 @@ public class EntityManager implements AutoCloseable {
         return entities;
     }
 
+    @Override
     public Entity find(Entity entity, int id) {
-        final String TABLE_NAME = entity.tableName();
-        String PK_NAME = entity.primaryKey();
+        String pk = entity.primaryKey();
         Entity localEntity = new Entity(entity);
-
-        String QUERY_SELECT_BY_ID = "SELECT * FROM " + TABLE_NAME + " WHERE " + PK_NAME + " = " + id;
-        try (final Statement statement = connection.createStatement();
-             final ResultSet resultSet = statement.executeQuery(QUERY_SELECT_BY_ID)) {
+        try {
+            PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + entity.tableName() + " WHERE " + pk + " = ?");
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                localEntity = setFieldsValue(entity, resultSet, PK_NAME);
+                localEntity = setFieldsValue(entity, resultSet, pk);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
         return localEntity;
     }
 
-    public Entity setFieldsValue(Entity entity, ResultSet resultSet, String primaryKey) throws SQLException {
+    public Entity setFieldsValue(Entity entity, ResultSet resultSet, String primaryKey) {
         Entity localEntity = new Entity(entity.getEntityClass());
         try {
             for (Field parsedField : entity.getEntityClass().getDeclaredFields()) {
@@ -143,11 +146,11 @@ public class EntityManager implements AutoCloseable {
         } catch (IllegalArgumentException | IllegalAccessException e) {
             e.printStackTrace();
 
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
         return localEntity;
     }
-
-
 
     @Override
     public void close() throws Exception {

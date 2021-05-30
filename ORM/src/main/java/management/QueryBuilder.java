@@ -12,7 +12,6 @@ public class QueryBuilder {
         query = new StringBuilder(string);
     }
 
-
     @Override
     public String toString() {
         return query.toString();
